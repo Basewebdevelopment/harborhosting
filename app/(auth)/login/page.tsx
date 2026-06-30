@@ -72,7 +72,7 @@ function LoginForm() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-[420px] flex-col justify-center px-6 py-12">
       <div className="rounded-[18px] border border-[#e7e9ec] bg-white p-10">
-        <h2 className="mb-1.5 font-[var(--font-plus-jakarta)] font-bold tracking-tight text-[26px] font-bold tracking-tight">
+        <h2 className="mb-1.5 font-[var(--font-inter)] font-bold tracking-tight text-[26px] font-bold tracking-tight">
           Welcome back
         </h2>
         <p className="mb-7 text-[14.5px] text-[#6a717a]">Sign in to your Harbor account.</p>

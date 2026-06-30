@@ -44,7 +44,7 @@ export default async function PaymentsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 pb-16 pt-10">
-      <div className="mb-2 font-[var(--font-plus-jakarta)] font-bold tracking-tight text-[26px] font-bold tracking-tight">
+      <div className="mb-2 font-[var(--font-inter)] font-bold tracking-tight text-[26px] font-bold tracking-tight">
         Payment history
       </div>
       <p className="mb-8 text-[14.5px] text-[#7a818a]">

@@ -16,23 +16,29 @@ export default async function DashboardPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  // If returning from Stripe checkout, sync subscription directly (webhook fallback)
+  // If returning from Stripe checkout, sync subscription + payment directly (webhook fallback)
   const { session_id } = await searchParams;
   if (session_id) {
     try {
-      const checkoutSession = await stripe.checkout.sessions.retrieve(session_id);
+      const checkoutSession = await stripe.checkout.sessions.retrieve(session_id, {
+        expand: ["invoice", "subscription"],
+      });
+
       if (checkoutSession.payment_status === "paid") {
         const { userId, plan, billing } = checkoutSession.metadata ?? {};
         if (userId && plan && billing && userId === session.user.id) {
-          const stripeSubId = checkoutSession.subscription as string;
-          const stripeSub = await stripe.subscriptions.retrieve(stripeSubId);
+          const stripeSub = checkoutSession.subscription as import("stripe").Stripe.Subscription;
+          const stripeSubId = stripeSub.id;
           const item = stripeSub.items.data[0];
-          const [existing] = await db
+
+          // Upsert subscription
+          const [existingSub] = await db
             .select()
             .from(subscriptions)
             .where(eq(subscriptions.userId, userId))
             .limit(1);
-          const vals = {
+
+          const subVals = {
             userId,
             stripeCustomerId: checkoutSession.customer as string,
             stripeSubscriptionId: stripeSubId,
@@ -40,13 +46,43 @@ export default async function DashboardPage({
             plan: plan as "starter" | "growth" | "business",
             billingPeriod: billing as "monthly" | "annual",
             subscriptionStatus: "active" as const,
-            currentPeriodStart: item ? new Date(item.current_period_start * 1000) : null,
-            currentPeriodEnd: item ? new Date(item.current_period_end * 1000) : null,
+            currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
+            currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
           };
-          if (existing) {
-            await db.update(subscriptions).set({ ...vals, updatedAt: new Date() }).where(eq(subscriptions.userId, userId));
+
+          if (existingSub) {
+            await db.update(subscriptions).set({ ...subVals, updatedAt: new Date() }).where(eq(subscriptions.userId, userId));
           } else {
-            await db.insert(subscriptions).values({ id: nanoid(), ...vals, cancelAtPeriodEnd: false });
+            await db.insert(subscriptions).values({ id: nanoid(), ...subVals, cancelAtPeriodEnd: false });
+          }
+
+          // Sync payment record from invoice
+          const invoice = checkoutSession.invoice as import("stripe").Stripe.Invoice | null;
+          if (invoice && invoice.id) {
+            const [existingPayment] = await db
+              .select()
+              .from(payments)
+              .where(eq(payments.stripeInvoiceId, invoice.id))
+              .limit(1);
+
+            if (!existingPayment) {
+              // Retrieve charge for card details
+              const chargeId = typeof invoice.charge === "string" ? invoice.charge : invoice.charge?.id ?? null;
+              const charge = chargeId ? await stripe.charges.retrieve(chargeId) : null;
+
+              await db.insert(payments).values({
+                id: nanoid(),
+                userId,
+                stripePaymentIntentId: typeof invoice.payment_intent === "string" ? invoice.payment_intent : null,
+                stripeInvoiceId: invoice.id,
+                amount: invoice.amount_paid,
+                currency: invoice.currency,
+                status: "paid",
+                description: invoice.lines?.data[0]?.description ?? `${plan} plan — ${billing} billing`,
+                last4: charge?.payment_method_details?.card?.last4 ?? null,
+                brand: charge?.payment_method_details?.card?.brand ?? null,
+              });
+            }
           }
         }
       }

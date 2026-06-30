@@ -178,7 +178,7 @@ export default function RegisterPage() {
 
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1fr_360px] items-start">
         <div className="rounded-[18px] border border-[#e7e9ec] bg-white p-[34px_36px]">
-          <h2 className="mb-1.5 font-[var(--font-plus-jakarta)] font-bold tracking-tight text-[24px] font-bold tracking-tight">
+          <h2 className="mb-1.5 font-[var(--font-inter)] font-bold tracking-tight text-[24px] font-bold tracking-tight">
             Create your account
           </h2>
           <p className="mb-6 text-[14.5px] text-[#6a717a]">
@@ -245,7 +245,7 @@ export default function RegisterPage() {
 
         {/* Order summary */}
         <div className="rounded-[18px] border border-[#e7e9ec] bg-white p-[28px_28px_24px]">
-          <div className="mb-5 font-[var(--font-plus-jakarta)] font-bold tracking-tight text-[16px] font-semibold">Order summary</div>
+          <div className="mb-5 font-[var(--font-inter)] font-bold tracking-tight text-[16px] font-semibold">Order summary</div>
           <div className="mb-4 flex items-center justify-between">
             <div>
               <div className="text-[15px] font-semibold">{plan.name} plan</div>

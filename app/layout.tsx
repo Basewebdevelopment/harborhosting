@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { auth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/navbar";
 import { SessionProvider } from "next-auth/react";
 
-const plusJakarta = Plus_Jakarta_Sans({
+const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-plus-jakarta",
+  variable: "--font-inter",
 });
 
 const geistMono = Geist_Mono({
@@ -31,8 +31,8 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html lang="en" className={`${plusJakarta.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen bg-[#f5f6f8] font-[var(--font-plus-jakarta)] text-[#15181c] antialiased">
+    <html lang="en" className={`${inter.variable} ${geistMono.variable}`}>
+      <body className="min-h-screen bg-[#f5f6f8] font-[var(--font-inter)] text-[#15181c] antialiased">
         <SessionProvider session={session}>
           <Navbar session={session} />
           <main>{children}</main>
