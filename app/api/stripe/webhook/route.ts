@@ -24,9 +24,8 @@ export async function POST(req: NextRequest) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sessionMeta = (session as any).subscription_data?.metadata ?? {};
-      const { userId, plan, billing } = sessionMeta;
+      // metadata lives on session.metadata (set at checkout session creation)
+      const { userId, plan, billing } = session.metadata ?? {};
       if (!userId || !plan || !billing) break;
 
       const stripeSubId = session.subscription as string;

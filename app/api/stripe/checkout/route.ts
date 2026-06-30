@@ -67,8 +67,15 @@ export async function POST(req: NextRequest) {
       customer: customerId,
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=1`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
+      // metadata on the session itself (readable in webhook payload)
+      metadata: {
+        userId: session.user.id,
+        plan,
+        billing,
+      },
+      // also copy to the subscription for future reference
       subscription_data: {
         metadata: {
           userId: session.user.id,
