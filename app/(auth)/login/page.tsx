@@ -17,10 +17,34 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [unverified, setUnverified] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  async function handleResend() {
+    setResending(true);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) {
+        toast.success("Verification email sent — please check your inbox.");
+        setUnverified(false);
+      } else {
+        toast.error("Could not resend email. Please try again.");
+      }
+    } catch {
+      toast.error("Something went wrong.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setUnverified(false);
     try {
       const result = await signIn("credentials", {
         email,
@@ -29,11 +53,11 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        const msg =
-          result.error === "Please verify your email before signing in."
-            ? "Please verify your email. Check your inbox for the confirmation link."
-            : "Invalid email or password.";
-        toast.error(msg);
+        if (result.error === "unverified_email") {
+          setUnverified(true);
+        } else {
+          toast.error("Invalid email or password.");
+        }
         return;
       }
 
@@ -57,6 +81,23 @@ function LoginForm() {
         {verified && (
           <div className="mb-5 rounded-[10px] border border-[#bbf0de] bg-[#f0faf6] p-3.5 text-[13.5px] text-[#0c7d5e]">
             Email confirmed! You can now sign in.
+          </div>
+        )}
+
+        {unverified && (
+          <div className="mb-5 rounded-[10px] border border-[#fde8c0] bg-[#fffbf0] p-3.5 text-[13.5px] text-[#92600a]">
+            <p className="font-semibold">Please verify your email first.</p>
+            <p className="mt-0.5">
+              Check your inbox for the confirmation link.{" "}
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className="font-semibold underline underline-offset-2 hover:opacity-75 disabled:opacity-50"
+              >
+                {resending ? "Sending…" : "Resend email"}
+              </button>
+            </p>
           </div>
         )}
 

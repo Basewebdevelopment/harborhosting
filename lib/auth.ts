@@ -1,9 +1,13 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db, users, accounts, sessions, verificationTokens } from "@/db";
 import { eq } from "drizzle-orm";
+
+class UnverifiedEmailError extends CredentialsSignin {
+  code = "unverified_email";
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db, {
@@ -30,7 +34,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const [user] = await db
           .select()
           .from(users)
-          .where(eq(users.email, credentials.email as string))
+          .where(eq(users.email, (credentials.email as string).toLowerCase()))
           .limit(1);
 
         if (!user || !user.hashedPassword) return null;
@@ -42,7 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!valid) return null;
 
         if (!user.emailVerified) {
-          throw new Error("Please verify your email before signing in.");
+          throw new UnverifiedEmailError();
         }
 
         return {
