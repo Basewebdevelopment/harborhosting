@@ -130,10 +130,18 @@ export default function RegisterPage() {
     }
   }
 
-  if (status === "loading" || status === "authenticated") {
+  if (status === "loading") {
     return (
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
-        <div className="text-[15px] text-[#7a818a]">Redirecting to checkout…</div>
+        <div className="text-[15px] text-[#7a818a]">Loading…</div>
+      </div>
+    );
+  }
+
+  if (status === "authenticated") {
+    return (
+      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
+        <div className="text-[15px] text-[#7a818a]">Taking you to checkout…</div>
       </div>
     );
   }

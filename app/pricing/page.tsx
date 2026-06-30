@@ -54,15 +54,17 @@ function PlanCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan: planKey, billing }),
       });
-      const data = await res.json();
+      let data: { url?: string; error?: string } = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
       if (!res.ok || !data.url) {
-        toast.error(data.error ?? "Could not start checkout. Please try again.");
+        toast.error(data.error ?? "Could not start checkout — please try again or contact support.");
+        setLoading(false);
         return;
       }
       window.location.href = data.url;
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
+    } catch (err) {
+      console.error(err);
+      toast.error("Network error — please check your connection and try again.");
       setLoading(false);
     }
   }
