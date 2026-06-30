@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { auth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/navbar";
+import { SessionProvider } from "next-auth/react";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -32,9 +33,11 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${plusJakarta.variable} ${geistMono.variable}`}>
       <body className="min-h-screen bg-[#f5f6f8] font-[var(--font-plus-jakarta)] text-[#15181c] antialiased">
-        <Navbar session={session} />
-        <main>{children}</main>
-        <Toaster richColors />
+        <SessionProvider session={session}>
+          <Navbar session={session} />
+          <main>{children}</main>
+          <Toaster richColors />
+        </SessionProvider>
       </body>
     </html>
   );
