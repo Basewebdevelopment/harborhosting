@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,7 @@ function Divider() {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
@@ -40,6 +41,32 @@ export default function RegisterPage() {
 
   const planKey = (typeof window !== "undefined" ? sessionStorage.getItem("harbor_plan") : null) as PlanKey | null;
   const billing = (typeof window !== "undefined" ? sessionStorage.getItem("harbor_billing") : null) as "monthly" | "annual" | null;
+
+  // Already logged in — skip registration and go straight to checkout
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    async function goToCheckout() {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/stripe/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: planKey ?? "growth", billing: billing ?? "monthly" }),
+        });
+        const data = await res.json();
+        if (res.ok && data.url) {
+          sessionStorage.removeItem("harbor_plan");
+          sessionStorage.removeItem("harbor_billing");
+          window.location.href = data.url;
+        } else {
+          router.push("/dashboard");
+        }
+      } catch {
+        router.push("/dashboard");
+      }
+    }
+    goToCheckout();
+  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const plan = planKey && PLANS[planKey] ? PLANS[planKey] : PLANS.growth;
   const price = billing === "annual"
@@ -101,6 +128,14 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (status === "loading" || status === "authenticated") {
+    return (
+      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
+        <div className="text-[15px] text-[#7a818a]">Redirecting to checkout…</div>
+      </div>
+    );
   }
 
   return (

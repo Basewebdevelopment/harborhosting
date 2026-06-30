@@ -23,7 +23,7 @@ function PlanCard({
   popular?: boolean;
 }) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const plan = PLANS[planKey];
   const isAnnual = billing === "annual";
@@ -36,10 +36,12 @@ function PlanCard({
   const annualSaving = (plan.monthlyPrice * 12 - plan.annualPrice).toFixed(2);
 
   async function handleChoose() {
+    if (status === "loading") return; // wait until session is known
+
     sessionStorage.setItem("harbor_plan", planKey);
     sessionStorage.setItem("harbor_billing", billing);
 
-    if (!session) {
+    if (status === "unauthenticated") {
       router.push("/register");
       return;
     }
@@ -118,7 +120,7 @@ function PlanCard({
 
       <button
         onClick={handleChoose}
-        disabled={loading}
+        disabled={loading || status === "loading"}
         className={`mb-6 h-[46px] w-full cursor-pointer rounded-[11px] text-[15px] font-semibold transition-colors disabled:opacity-60 ${
           popular
             ? "border-none bg-[#0f9d77] text-white shadow-[0_6px_14px_-4px_rgba(15,157,119,0.5)] hover:bg-[#0c8463]"
