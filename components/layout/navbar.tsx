@@ -55,6 +55,16 @@ export function Navbar({ session }: { session: Session | null }) {
             >
               Payments
             </Link>
+            <Link
+              href="/account"
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                pathname === "/account"
+                  ? "bg-[#f0faf6] text-[#0f9d77]"
+                  : "text-[#41474e] hover:bg-[#f3f4f6]"
+              }`}
+            >
+              Account
+            </Link>
             <div className="mx-1.5 h-5 w-px bg-[#e2e4e8]" />
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e3f4ee] text-[13px] font-semibold text-[#0c7d5e]">
               {initials(session.user?.name)}
