@@ -97,11 +97,76 @@ export default async function DashboardPage({
     .where(eq(users.id, session.user.id))
     .limit(1);
 
-  const [sub] = await db
+  let [sub] = await db
     .select()
     .from(subscriptions)
     .where(eq(subscriptions.userId, session.user.id))
     .limit(1);
+
+  // Fallback: if no subscription in DB, try to find and sync from Stripe by email
+  if (!sub && user?.email) {
+    try {
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+      const customer = customers.data[0];
+      if (customer) {
+        const stripeSubs = await stripe.subscriptions.list({
+          customer: customer.id,
+          status: "active",
+          limit: 1,
+          expand: ["data.items"],
+        });
+        const activeSub = stripeSubs.data[0];
+        if (activeSub) {
+          const item = activeSub.items.data[0];
+          const subMeta = activeSub.metadata ?? {};
+          const plan = (subMeta.plan ?? item?.price?.metadata?.plan ?? "starter") as "starter" | "growth" | "business";
+          const billing = (subMeta.billing ?? (activeSub.items.data[0]?.price?.recurring?.interval === "year" ? "annual" : "monthly")) as "monthly" | "annual";
+
+          const vals = {
+            userId: session.user.id,
+            stripeCustomerId: customer.id,
+            stripeSubscriptionId: activeSub.id,
+            stripePriceId: item?.price.id ?? null,
+            plan,
+            billingPeriod: billing,
+            subscriptionStatus: "active" as const,
+            currentPeriodStart: new Date(activeSub.current_period_start * 1000),
+            currentPeriodEnd: new Date(activeSub.current_period_end * 1000),
+          };
+
+          await db.insert(subscriptions).values({ id: nanoid(), ...vals, cancelAtPeriodEnd: activeSub.cancel_at_period_end });
+
+          // Also sync latest invoice as payment record
+          const invoices = await stripe.invoices.list({ customer: customer.id, limit: 5, status: "paid" });
+          for (const inv of invoices.data) {
+            const [exists] = await db.select().from(payments).where(eq(payments.stripeInvoiceId, inv.id)).limit(1);
+            if (!exists) {
+              const chargeId = typeof inv.charge === "string" ? inv.charge : (inv.charge as { id?: string } | null)?.id ?? null;
+              const charge = chargeId ? await stripe.charges.retrieve(chargeId) : null;
+              await db.insert(payments).values({
+                id: nanoid(),
+                userId: session.user.id,
+                stripePaymentIntentId: typeof inv.payment_intent === "string" ? inv.payment_intent : null,
+                stripeInvoiceId: inv.id,
+                amount: inv.amount_paid,
+                currency: inv.currency,
+                status: "paid",
+                description: inv.lines?.data[0]?.description ?? `${plan} plan`,
+                last4: charge?.payment_method_details?.card?.last4 ?? null,
+                brand: charge?.payment_method_details?.card?.brand ?? null,
+              });
+            }
+          }
+
+          // Re-query after sync
+          const [freshSub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, session.user.id)).limit(1);
+          sub = freshSub;
+        }
+      }
+    } catch (err) {
+      console.error("[dashboard] stripe fallback sync error", err);
+    }
+  }
 
   const recentPayments = await db
     .select()
