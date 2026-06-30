@@ -88,20 +88,36 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Registration failed");
-        return;
-      }
-
-      // Step 2: Sign in automatically
-      const loginResult = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-      if (loginResult?.error) {
-        toast.error("Account created but sign-in failed. Please log in manually.");
-        router.push("/login");
-        return;
+        if (res.status === 409) {
+          // Account already exists — try signing in with the provided password
+          const loginResult = await signIn("credentials", {
+            email,
+            password,
+            redirect: false,
+          });
+          if (loginResult?.error) {
+            // Wrong password for existing account
+            toast.error("You already have an account. Please sign in with your existing password.");
+            router.push(`/login`);
+            return;
+          }
+          // Signed in successfully — fall through to checkout
+        } else {
+          toast.error(data.error ?? "Registration failed");
+          return;
+        }
+      } else {
+        // Step 2: Sign in automatically after fresh registration
+        const loginResult = await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+        });
+        if (loginResult?.error) {
+          toast.error("Account created — please sign in to continue.");
+          router.push("/login");
+          return;
+        }
       }
 
       // Step 3: Start Stripe checkout

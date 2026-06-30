@@ -33,6 +33,33 @@ function LoginForm() {
         return;
       }
 
+      // If there's a pending plan in sessionStorage, go to checkout instead of dashboard
+      const pendingPlan = sessionStorage.getItem("harbor_plan");
+      const pendingBilling = sessionStorage.getItem("harbor_billing");
+      if (pendingPlan) {
+        setLoading(true);
+        try {
+          const res = await fetch("/api/stripe/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ plan: pendingPlan, billing: pendingBilling ?? "monthly" }),
+          });
+          let data: { url?: string; error?: string } = {};
+          try { data = await res.json(); } catch { /* non-JSON */ }
+          if (res.ok && data.url) {
+            sessionStorage.removeItem("harbor_plan");
+            sessionStorage.removeItem("harbor_billing");
+            window.location.href = data.url;
+            return;
+          }
+          toast.error(data.error ?? "Could not start checkout — please try again.");
+        } catch {
+          toast.error("Something went wrong starting checkout.");
+        } finally {
+          setLoading(false);
+        }
+      }
+
       router.push(callbackUrl);
       router.refresh();
     } catch {
