@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +53,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Step 1: Create account
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,7 +64,38 @@ export default function RegisterPage() {
         toast.error(data.error ?? "Registration failed");
         return;
       }
-      router.push("/verify-email?sent=1");
+
+      // Step 2: Sign in automatically
+      const loginResult = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (loginResult?.error) {
+        toast.error("Account created but sign-in failed. Please log in manually.");
+        router.push("/login");
+        return;
+      }
+
+      // Step 3: Start Stripe checkout
+      const checkoutRes = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: planKey ?? "growth",
+          billing: billing ?? "monthly",
+        }),
+      });
+      const checkoutData = await checkoutRes.json();
+      if (!checkoutRes.ok || !checkoutData.url) {
+        toast.error("Account created! Redirecting to dashboard…");
+        router.push("/dashboard");
+        return;
+      }
+
+      sessionStorage.removeItem("harbor_plan");
+      sessionStorage.removeItem("harbor_billing");
+      window.location.href = checkoutData.url;
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -171,7 +204,7 @@ export default function RegisterPage() {
             ))}
           </div>
           <div className="rounded-[10px] bg-[#f5f6f8] p-3 text-[12.5px] text-[#7a818a]">
-            You&apos;ll confirm payment after verifying your email.
+            You&apos;ll be taken to a secure Stripe checkout after creating your account.
           </div>
         </div>
       </div>

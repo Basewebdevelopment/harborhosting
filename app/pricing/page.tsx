@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { PLANS, type PlanKey } from "@/lib/plans";
 import { toast } from "sonner";
 
@@ -22,6 +23,8 @@ function PlanCard({
   popular?: boolean;
 }) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const [loading, setLoading] = useState(false);
   const plan = PLANS[planKey];
   const isAnnual = billing === "annual";
 
@@ -32,10 +35,34 @@ function PlanCard({
   const annualTotal = plan.annualPrice.toFixed(2);
   const annualSaving = (plan.monthlyPrice * 12 - plan.annualPrice).toFixed(2);
 
-  function handleChoose() {
+  async function handleChoose() {
     sessionStorage.setItem("harbor_plan", planKey);
     sessionStorage.setItem("harbor_billing", billing);
-    router.push("/register");
+
+    if (!session) {
+      router.push("/register");
+      return;
+    }
+
+    // Already logged in — go straight to Stripe checkout
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: planKey, billing }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        toast.error(data.error ?? "Could not start checkout. Please try again.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -91,13 +118,14 @@ function PlanCard({
 
       <button
         onClick={handleChoose}
-        className={`mb-6 h-[46px] w-full cursor-pointer rounded-[11px] text-[15px] font-semibold transition-colors ${
+        disabled={loading}
+        className={`mb-6 h-[46px] w-full cursor-pointer rounded-[11px] text-[15px] font-semibold transition-colors disabled:opacity-60 ${
           popular
             ? "border-none bg-[#0f9d77] text-white shadow-[0_6px_14px_-4px_rgba(15,157,119,0.5)] hover:bg-[#0c8463]"
             : "border border-[#d8dce1] bg-white text-[#15181c] hover:bg-[#f3f4f6]"
         }`}
       >
-        Choose {plan.name}
+        {loading ? "Redirecting…" : `Choose ${plan.name}`}
       </button>
 
       <div className="flex flex-col gap-3.5">
