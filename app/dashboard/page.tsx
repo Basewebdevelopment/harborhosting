@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db, subscriptions, payments, users } from "@/db";
 import { eq, desc } from "drizzle-orm";
-import { PLANS } from "@/lib/stripe";
+import { PLANS } from "@/lib/plans";
 import Link from "next/link";
 import { DashboardClient } from "./dashboard-client";
 

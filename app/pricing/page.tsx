@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PLANS, type PlanKey } from "@/lib/stripe";
+import { PLANS, type PlanKey } from "@/lib/plans";
 import { toast } from "sonner";
 
 const CHECK = (
@@ -23,12 +23,16 @@ function PlanCard({
 }) {
   const router = useRouter();
   const plan = PLANS[planKey];
-  const price = billing === "annual"
+  const isAnnual = billing === "annual";
+
+  const displayPrice = isAnnual
     ? (plan.annualPrice / 12).toFixed(2)
     : plan.monthlyPrice.toFixed(2);
 
-  async function handleChoose() {
-    // Store selection in sessionStorage, redirect to register
+  const annualTotal = plan.annualPrice.toFixed(2);
+  const annualSaving = (plan.monthlyPrice * 12 - plan.annualPrice).toFixed(2);
+
+  function handleChoose() {
     sessionStorage.setItem("harbor_plan", planKey);
     sessionStorage.setItem("harbor_billing", billing);
     router.push("/register");
@@ -47,20 +51,44 @@ function PlanCard({
           Most popular
         </div>
       )}
-      <div className="mb-1 font-[var(--font-space-grotesk)] text-[18px] font-semibold">{plan.name}</div>
+
+      <div className="mb-1 text-[18px] font-bold">{plan.name}</div>
       <div className="mb-5 text-[13px] text-[#7a818a]">
         {planKey === "starter" && "For your first website"}
         {planKey === "growth" && "For growing businesses"}
         {planKey === "business" && "For high-traffic sites"}
       </div>
-      <div className="mb-1 flex items-baseline gap-0.5">
-        <span className="text-[22px] font-semibold text-[#41474e]">$</span>
-        <span className="font-[var(--font-ibm-plex-mono)] text-[42px] font-semibold tracking-tight">{price}</span>
+
+      {/* Price block */}
+      <div className="mb-1 flex items-baseline gap-1">
+        {isAnnual && (
+          <span className="text-[16px] font-medium text-[#bcc0c7] line-through">
+            £{plan.monthlyPrice.toFixed(2)}
+          </span>
+        )}
+        <span className="text-[22px] font-semibold text-[#41474e]">£</span>
+        <span className="font-[var(--font-geist-mono)] text-[42px] font-semibold tracking-tight leading-none">
+          {displayPrice}
+        </span>
         <span className="text-[15px] font-medium text-[#7a818a]">/mo</span>
       </div>
-      <div className="mb-6 text-[12.5px] text-[#9aa0a8]">
-        {billing === "annual" ? "billed annually" : "billed monthly"}
-      </div>
+
+      {/* Billing note */}
+      {isAnnual ? (
+        <div className="mb-6 space-y-1">
+          <div className="text-[12.5px] font-medium text-[#0c7d5e]">
+            Billed £{annualTotal}/year
+          </div>
+          <div className="text-[12px] text-[#9aa0a8]">
+            You save £{annualSaving} compared to monthly
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6 text-[12.5px] text-[#9aa0a8]">
+          Billed monthly — cancel anytime
+        </div>
+      )}
+
       <button
         onClick={handleChoose}
         className={`mb-6 h-[46px] w-full cursor-pointer rounded-[11px] text-[15px] font-semibold transition-colors ${
@@ -71,6 +99,7 @@ function PlanCard({
       >
         Choose {plan.name}
       </button>
+
       <div className="flex flex-col gap-3.5">
         {plan.features.map((f) => (
           <div key={f} className="flex items-start gap-2.5 text-[14px] text-[#3c424a]">
@@ -87,15 +116,15 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
   const segBase =
-    "px-5 py-2 rounded-lg border-none cursor-pointer text-[14px] font-semibold font-[var(--font-ibm-plex-sans)] transition-all";
+    "px-5 py-2 rounded-lg border-none cursor-pointer text-[14px] font-semibold font-[var(--font-plus-jakarta)] transition-all";
 
   return (
     <div className="mx-auto max-w-6xl px-6 pb-20 pt-16">
       <div className="mx-auto mb-10 max-w-[620px] text-center">
-        <div className="mb-4 font-[var(--font-ibm-plex-mono)] text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0f9d77]">
+        <div className="mb-4 font-[var(--font-geist-mono)] text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0f9d77]">
           Pricing
         </div>
-        <h1 className="mb-4 font-[var(--font-space-grotesk)] text-[44px] font-bold leading-[1.08] tracking-tight">
+        <h1 className="mb-4 font-[var(--font-plus-jakarta)] font-bold tracking-tight text-[44px] font-bold leading-[1.08] tracking-tight">
           Hosting that grows<br />with your business
         </h1>
         <p className="text-[17px] leading-relaxed text-[#5a616a]">
@@ -105,23 +134,23 @@ export default function PricingPage() {
       </div>
 
       <div className="mb-11 flex items-center justify-center gap-3">
-        <div className="inline-flex gap-0.5 rounded-[11px] bg-[#eceef1] p-1">
+        <div className="inline-flex rounded-[11px] border border-[#e2e4e8] bg-white p-1 shadow-sm">
           <button
             onClick={() => setBilling("monthly")}
-            className={`${segBase} ${
+            className={`rounded-[8px] px-6 py-2 text-[14px] font-semibold transition-all ${
               billing === "monthly"
-                ? "bg-white text-[#15181c] shadow-[0_1px_2px_rgba(16,24,40,0.12)]"
-                : "bg-transparent text-[#5a616a]"
+                ? "bg-[#0f9d77] text-white shadow-[0_2px_8px_rgba(15,157,119,0.35)]"
+                : "bg-transparent text-[#5a616a] hover:text-[#15181c]"
             }`}
           >
             Monthly
           </button>
           <button
             onClick={() => setBilling("annual")}
-            className={`${segBase} ${
+            className={`rounded-[8px] px-6 py-2 text-[14px] font-semibold transition-all ${
               billing === "annual"
-                ? "bg-white text-[#15181c] shadow-[0_1px_2px_rgba(16,24,40,0.12)]"
-                : "bg-transparent text-[#5a616a]"
+                ? "bg-[#0f9d77] text-white shadow-[0_2px_8px_rgba(15,157,119,0.35)]"
+                : "bg-transparent text-[#5a616a] hover:text-[#15181c]"
             }`}
           >
             Annual

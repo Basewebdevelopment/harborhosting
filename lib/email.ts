@@ -21,13 +21,8 @@ export async function sendVerificationEmail(opts: {
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e7e9ec;overflow:hidden;">
         <tr>
-          <td style="padding:32px 40px 24px;border-bottom:1px solid #f0f1f3;">
-            <div style="display:inline-flex;align-items:center;gap:10px;">
-              <div style="width:32px;height:32px;border-radius:9px;background:#0f9d77;display:inline-flex;align-items:center;justify-content:center;">
-                <span style="color:#fff;font-size:20px;font-weight:700;line-height:1;">H</span>
-              </div>
-              <span style="font-size:20px;font-weight:700;color:#15181c;letter-spacing:-0.01em;">Harbor</span>
-            </div>
+          <td style="padding:28px 40px 24px;border-bottom:1px solid #f0f1f3;">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/harbor-logo.png" alt="Harbor Hosting" height="36" style="display:block;height:36px;width:auto;">
           </td>
         </tr>
         <tr>

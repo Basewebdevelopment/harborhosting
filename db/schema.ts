@@ -99,7 +99,7 @@ export const payments = pgTable("payments", {
   stripePaymentIntentId: text("stripe_payment_intent_id").unique(),
   stripeInvoiceId: text("stripe_invoice_id"),
   amount: integer("amount").notNull(), // in cents
-  currency: text("currency").notNull().default("usd"),
+  currency: text("currency").notNull().default("gbp"),
   status: text("status").notNull(),
   description: text("description"),
   last4: text("last4"),

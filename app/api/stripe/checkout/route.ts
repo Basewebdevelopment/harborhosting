@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { stripe, PLANS, type PlanKey } from "@/lib/stripe";
+import { stripe, STRIPE_PRICE_IDS } from "@/lib/stripe";
+import { PLANS, type PlanKey } from "@/lib/plans";
 import { db, subscriptions, users } from "@/db";
 import { eq } from "drizzle-orm";
 
@@ -22,8 +23,8 @@ export async function POST(req: NextRequest) {
 
   const priceId =
     billing === "annual"
-      ? planConfig.stripePriceAnnual
-      : planConfig.stripePriceMonthly;
+      ? STRIPE_PRICE_IDS[plan].annual
+      : STRIPE_PRICE_IDS[plan].monthly;
 
   if (!priceId) {
     return NextResponse.json(
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
   const checkoutSession = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
+    currency: "gbp",
     payment_method_types: ["card"],
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=1`,

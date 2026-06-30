@@ -9,9 +9,9 @@ function fmtDate(date: Date) {
 }
 
 function fmtAmount(cents: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: currency.toUpperCase(),
+    currency: currency.toUpperCase() === "USD" ? "GBP" : currency.toUpperCase(),
   }).format(cents / 100);
 }
 
@@ -44,7 +44,7 @@ export default async function PaymentsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 pb-16 pt-10">
-      <div className="mb-2 font-[var(--font-space-grotesk)] text-[26px] font-bold tracking-tight">
+      <div className="mb-2 font-[var(--font-plus-jakarta)] font-bold tracking-tight text-[26px] font-bold tracking-tight">
         Payment history
       </div>
       <p className="mb-8 text-[14.5px] text-[#7a818a]">
@@ -67,13 +67,13 @@ export default async function PaymentsPage() {
           <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div className="rounded-[14px] border border-[#e7e9ec] bg-white p-5">
               <div className="mb-1 text-[12px] font-medium text-[#9aa0a8]">Total spent</div>
-              <div className="font-[var(--font-ibm-plex-mono)] text-[22px] font-semibold">
+              <div className="font-[var(--font-geist-mono)] text-[22px] font-semibold">
                 {fmtAmount(total, currency)}
               </div>
             </div>
             <div className="rounded-[14px] border border-[#e7e9ec] bg-white p-5">
               <div className="mb-1 text-[12px] font-medium text-[#9aa0a8]">Total payments</div>
-              <div className="font-[var(--font-ibm-plex-mono)] text-[22px] font-semibold">
+              <div className="font-[var(--font-geist-mono)] text-[22px] font-semibold">
                 {allPayments.length}
               </div>
             </div>
@@ -105,7 +105,7 @@ export default async function PaymentsPage() {
                     <td className="px-6 py-4">
                       <StatusBadge status={p.status} />
                     </td>
-                    <td className="px-6 py-4 text-right font-[var(--font-ibm-plex-mono)] text-[14px] font-semibold">
+                    <td className="px-6 py-4 text-right font-[var(--font-geist-mono)] text-[14px] font-semibold">
                       {fmtAmount(p.amount, p.currency)}
                     </td>
                   </tr>

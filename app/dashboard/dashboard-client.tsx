@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { toast } from "sonner";
-import { PLANS } from "@/lib/stripe";
+import { PLANS } from "@/lib/plans";
 
 type Props = {
   user: { name: string | null; email: string };
@@ -35,7 +35,10 @@ function fmtDate(iso: string) {
 }
 
 function fmtAmount(cents: number, currency: string) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: currency.toUpperCase() === "USD" ? "GBP" : currency.toUpperCase(),
+  }).format(cents / 100);
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -75,7 +78,7 @@ export function DashboardClient({ user, subscription, planConfig, recentPayments
             {initials(user.name)}
           </div>
           <div>
-            <h1 className="font-[var(--font-space-grotesk)] text-[22px] font-bold tracking-tight">
+            <h1 className="font-[var(--font-plus-jakarta)] font-bold tracking-tight text-[22px] font-bold tracking-tight">
               Good to see you, {firstName}
             </h1>
             <p className="text-[13.5px] text-[#7a818a]">{user.email}</p>
@@ -99,7 +102,7 @@ export function DashboardClient({ user, subscription, planConfig, recentPayments
           <div className="col-span-2 rounded-[18px] border border-[#e7e9ec] bg-white p-7">
             <div className="mb-5 flex items-start justify-between">
               <div>
-                <div className="mb-1 font-[var(--font-space-grotesk)] text-[18px] font-bold">
+                <div className="mb-1 font-[var(--font-plus-jakarta)] font-bold tracking-tight text-[18px] font-bold">
                   {planConfig?.name} plan
                 </div>
                 <div className="flex items-center gap-2 text-[13.5px] text-[#7a818a]">
@@ -152,7 +155,7 @@ export function DashboardClient({ user, subscription, planConfig, recentPayments
           {/* Recent payments */}
           <div className="rounded-[18px] border border-[#e7e9ec] bg-white p-7">
             <div className="mb-4 flex items-center justify-between">
-              <div className="font-[var(--font-space-grotesk)] text-[16px] font-semibold">Recent payments</div>
+              <div className="font-[var(--font-plus-jakarta)] font-bold tracking-tight text-[16px] font-semibold">Recent payments</div>
               <Link href="/payments" className="text-[13px] font-medium text-[#0f9d77] hover:underline">
                 View all
               </Link>
@@ -169,7 +172,7 @@ export function DashboardClient({ user, subscription, planConfig, recentPayments
                         {p.brand} ···· {p.last4} · {fmtDate(p.createdAt)}
                       </div>
                     </div>
-                    <div className="font-[var(--font-ibm-plex-mono)] text-[14px] font-semibold">
+                    <div className="font-[var(--font-geist-mono)] text-[14px] font-semibold">
                       {fmtAmount(p.amount, p.currency)}
                     </div>
                   </div>

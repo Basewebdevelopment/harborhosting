@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Session } from "next-auth";
@@ -19,13 +20,17 @@ export function Navbar({ session }: { session: Session | null }) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#e7e9ec] bg-white/85 backdrop-blur-md backdrop-saturate-150">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-[#0f9d77] shadow-[0_2px_6px_rgba(15,157,119,0.35)]">
-            <span className="font-[Space_Grotesk] text-lg font-bold leading-none text-white">H</span>
-          </div>
-          <span className="font-[Space_Grotesk] text-[19px] font-bold tracking-tight text-[#15181c]">Harbor</span>
+    <header className="sticky top-0 z-50 border-b border-[#e7e9ec] bg-white backdrop-blur-md backdrop-saturate-150">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
+        <Link href={session ? "/dashboard" : "/"} className="flex items-center">
+          <Image
+            src="/harbor-logo-v2.png"
+            alt="Harbor Hosting"
+            width={220}
+            height={76}
+            className="h-14 w-auto object-contain"
+            priority
+          />
         </Link>
 
         {session ? (
