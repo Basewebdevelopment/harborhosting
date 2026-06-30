@@ -71,6 +71,17 @@ export const emailVerifications = pgTable("email_verifications", {
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 
+// ── Password reset ─────────────────────────────────────────────────────────
+export const passwordResets = pgTable("password_resets", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
 // ── Subscriptions ──────────────────────────────────────────────────────────
 export const subscriptions = pgTable("subscriptions", {
   id: text("id").primaryKey(),
