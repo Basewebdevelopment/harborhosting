@@ -1,8 +1,11 @@
 import Stripe from "stripe";
+import { config } from "dotenv";
+config({ path: ".env.local" });
 
-const stripe = new Stripe(
-  "REDACTED"
-);
+const key = process.env.STRIPE_SECRET_KEY;
+if (!key) throw new Error("STRIPE_SECRET_KEY not set in .env.local");
+
+const stripe = new Stripe(key);
 
 const plans = [
   {
