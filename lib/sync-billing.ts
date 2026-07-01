@@ -1,11 +1,17 @@
 import "server-only";
 import { stripe } from "@/lib/stripe";
+import { getSubscriptionPeriod, getInvoiceCardDetails } from "@/lib/stripe-helpers";
 import { db, subscriptions, payments, users } from "@/db";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 async function syncInvoicesForCustomer(userId: string, customerId: string, planLabel?: string) {
-  const invoices = await stripe.invoices.list({ customer: customerId, limit: 10, status: "paid" });
+  const invoices = await stripe.invoices.list({
+    customer: customerId,
+    limit: 10,
+    status: "paid",
+    expand: ["data.payments"],
+  });
   for (const inv of invoices.data) {
     const [exists] = await db
       .select()
@@ -14,21 +20,19 @@ async function syncInvoicesForCustomer(userId: string, customerId: string, planL
       .limit(1);
     if (exists) continue;
 
-    const chargeId =
-      typeof inv.charge === "string" ? inv.charge : (inv.charge as { id?: string } | null)?.id ?? null;
-    const charge = chargeId ? await stripe.charges.retrieve(chargeId) : null;
+    const cardDetails = await getInvoiceCardDetails(inv);
 
     await db.insert(payments).values({
       id: nanoid(),
       userId,
-      stripePaymentIntentId: typeof inv.payment_intent === "string" ? inv.payment_intent : null,
+      stripePaymentIntentId: cardDetails.paymentIntentId,
       stripeInvoiceId: inv.id,
       amount: inv.amount_paid,
       currency: inv.currency,
       status: "paid",
       description: inv.lines?.data[0]?.description ?? planLabel ?? "Subscription payment",
-      last4: charge?.payment_method_details?.card?.last4 ?? null,
-      brand: charge?.payment_method_details?.card?.brand ?? null,
+      last4: cardDetails.last4,
+      brand: cardDetails.brand,
     });
   }
 }
@@ -81,8 +85,7 @@ export async function syncBillingFromStripe(userId: string) {
         plan,
         billingPeriod: billing,
         subscriptionStatus: "active",
-        currentPeriodStart: new Date(activeSub.current_period_start * 1000),
-        currentPeriodEnd: new Date(activeSub.current_period_end * 1000),
+        ...getSubscriptionPeriod(activeSub),
         cancelAtPeriodEnd: activeSub.cancel_at_period_end,
       });
     }

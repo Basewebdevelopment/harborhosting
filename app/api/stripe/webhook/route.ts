@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
+import { getInvoiceCardDetails } from "@/lib/stripe-helpers";
 import { db, subscriptions, payments } from "@/db";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
@@ -64,9 +65,9 @@ export async function POST(req: NextRequest) {
     }
 
     case "invoice.payment_succeeded": {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const invoice = event.data.object as any;
-      const stripeSubId = invoice.subscription as string | null;
+      const invoiceStub = event.data.object as Stripe.Invoice;
+      const subDetails = invoiceStub.parent?.subscription_details?.subscription ?? null;
+      const stripeSubId = typeof subDetails === "string" ? subDetails : subDetails?.id ?? null;
       if (!stripeSubId) break;
 
       const [sub] = await db
@@ -77,23 +78,20 @@ export async function POST(req: NextRequest) {
 
       if (!sub) break;
 
-      const pi = invoice.payment_intent as string | null;
-      const chargeId = invoice.charge as string | null;
-      const charge = chargeId
-        ? await stripe.charges.retrieve(chargeId)
-        : null;
+      const invoice = await stripe.invoices.retrieve(invoiceStub.id!, { expand: ["payments"] });
+      const cardDetails = await getInvoiceCardDetails(invoice);
 
       await db.insert(payments).values({
         id: nanoid(),
         userId: sub.userId,
-        stripePaymentIntentId: pi ?? null,
-        stripeInvoiceId: invoice.id,
-        amount: invoice.amount_paid as number,
-        currency: invoice.currency as string,
+        stripePaymentIntentId: cardDetails.paymentIntentId,
+        stripeInvoiceId: invoice.id!,
+        amount: invoice.amount_paid,
+        currency: invoice.currency,
         status: "paid",
-        description: (invoice.lines?.data[0]?.description as string | null) ?? "Subscription payment",
-        last4: charge?.payment_method_details?.card?.last4 ?? null,
-        brand: charge?.payment_method_details?.card?.brand ?? null,
+        description: invoice.lines?.data[0]?.description ?? "Subscription payment",
+        last4: cardDetails.last4,
+        brand: cardDetails.brand,
       });
       break;
     }

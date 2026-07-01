@@ -4,6 +4,7 @@ import { db, subscriptions, payments, users } from "@/db";
 import { eq, desc } from "drizzle-orm";
 import { PLANS } from "@/lib/plans";
 import { stripe } from "@/lib/stripe";
+import { getSubscriptionPeriod, getInvoiceCardDetails } from "@/lib/stripe-helpers";
 import { nanoid } from "nanoid";
 import Link from "next/link";
 import { DashboardClient } from "./dashboard-client";
@@ -21,7 +22,7 @@ export default async function DashboardPage({
   if (session_id) {
     try {
       const checkoutSession = await stripe.checkout.sessions.retrieve(session_id, {
-        expand: ["invoice", "subscription"],
+        expand: ["invoice.payments", "subscription.items", "subscription"],
       });
 
       if (checkoutSession.payment_status === "paid") {
@@ -46,8 +47,7 @@ export default async function DashboardPage({
             plan: plan as "starter" | "growth" | "business",
             billingPeriod: billing as "monthly" | "annual",
             subscriptionStatus: "active" as const,
-            currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
-            currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+            ...getSubscriptionPeriod(stripeSub),
           };
 
           if (existingSub) {
@@ -66,21 +66,19 @@ export default async function DashboardPage({
               .limit(1);
 
             if (!existingPayment) {
-              // Retrieve charge for card details
-              const chargeId = typeof invoice.charge === "string" ? invoice.charge : invoice.charge?.id ?? null;
-              const charge = chargeId ? await stripe.charges.retrieve(chargeId) : null;
+              const cardDetails = await getInvoiceCardDetails(invoice);
 
               await db.insert(payments).values({
                 id: nanoid(),
                 userId,
-                stripePaymentIntentId: typeof invoice.payment_intent === "string" ? invoice.payment_intent : null,
+                stripePaymentIntentId: cardDetails.paymentIntentId,
                 stripeInvoiceId: invoice.id,
                 amount: invoice.amount_paid,
                 currency: invoice.currency,
                 status: "paid",
                 description: invoice.lines?.data[0]?.description ?? `${plan} plan — ${billing} billing`,
-                last4: charge?.payment_method_details?.card?.last4 ?? null,
-                brand: charge?.payment_method_details?.card?.brand ?? null,
+                last4: cardDetails.last4,
+                brand: cardDetails.brand,
               });
             }
           }
@@ -130,30 +128,33 @@ export default async function DashboardPage({
             plan,
             billingPeriod: billing,
             subscriptionStatus: "active" as const,
-            currentPeriodStart: new Date(activeSub.current_period_start * 1000),
-            currentPeriodEnd: new Date(activeSub.current_period_end * 1000),
+            ...getSubscriptionPeriod(activeSub),
           };
 
           await db.insert(subscriptions).values({ id: nanoid(), ...vals, cancelAtPeriodEnd: activeSub.cancel_at_period_end });
 
           // Also sync latest invoice as payment record
-          const invoices = await stripe.invoices.list({ customer: customer.id, limit: 5, status: "paid" });
+          const invoices = await stripe.invoices.list({
+            customer: customer.id,
+            limit: 5,
+            status: "paid",
+            expand: ["data.payments"],
+          });
           for (const inv of invoices.data) {
             const [exists] = await db.select().from(payments).where(eq(payments.stripeInvoiceId, inv.id)).limit(1);
             if (!exists) {
-              const chargeId = typeof inv.charge === "string" ? inv.charge : (inv.charge as { id?: string } | null)?.id ?? null;
-              const charge = chargeId ? await stripe.charges.retrieve(chargeId) : null;
+              const cardDetails = await getInvoiceCardDetails(inv);
               await db.insert(payments).values({
                 id: nanoid(),
                 userId: session.user.id,
-                stripePaymentIntentId: typeof inv.payment_intent === "string" ? inv.payment_intent : null,
+                stripePaymentIntentId: cardDetails.paymentIntentId,
                 stripeInvoiceId: inv.id,
                 amount: inv.amount_paid,
                 currency: inv.currency,
                 status: "paid",
                 description: inv.lines?.data[0]?.description ?? `${plan} plan`,
-                last4: charge?.payment_method_details?.card?.last4 ?? null,
-                brand: charge?.payment_method_details?.card?.brand ?? null,
+                last4: cardDetails.last4,
+                brand: cardDetails.brand,
               });
             }
           }
