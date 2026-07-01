@@ -148,7 +148,7 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
   const segBase =
-    "px-5 py-2 rounded-lg border-none cursor-pointer text-[14px] font-semibold font-[var(--font-inter)] transition-all";
+    "px-5 py-2 rounded-lg border-none cursor-pointer text-[14px] font-semibold font-[var(--font-poppins)] transition-all";
 
   return (
     <div className="mx-auto max-w-6xl px-6 pb-20 pt-16">
@@ -156,7 +156,7 @@ export default function PricingPage() {
         <div className="mb-4 font-[var(--font-geist-mono)] text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0f9d77]">
           Pricing
         </div>
-        <h1 className="mb-4 font-[var(--font-inter)] font-bold tracking-tight text-[44px] font-bold leading-[1.08] tracking-tight">
+        <h1 className="mb-4 font-[var(--font-poppins)] font-bold tracking-tight text-[44px] font-bold leading-[1.08] tracking-tight">
           Hosting that grows<br />with your business
         </h1>
         <p className="text-[17px] leading-relaxed text-[#5a616a]">

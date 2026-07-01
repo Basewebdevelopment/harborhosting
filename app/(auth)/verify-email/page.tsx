@@ -18,7 +18,7 @@ function VerifyContent() {
     return (
       <div className="text-center">
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-2xl">✗</div>
-        <h2 className="mb-2 font-[var(--font-inter)] font-bold tracking-tight text-[22px] font-bold">Verification failed</h2>
+        <h2 className="mb-2 font-[var(--font-poppins)] font-bold tracking-tight text-[22px] font-bold">Verification failed</h2>
         <p className="mb-6 text-[14.5px] text-[#6a717a]">{messages[error] ?? "Something went wrong."}</p>
         <Link
           href="/pricing"
@@ -35,7 +35,7 @@ function VerifyContent() {
       <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#e3f4ee] text-2xl">
         ✉️
       </div>
-      <h2 className="mb-2 font-[var(--font-inter)] font-bold tracking-tight text-[22px] font-bold tracking-tight">Check your inbox</h2>
+      <h2 className="mb-2 font-[var(--font-poppins)] font-bold tracking-tight text-[22px] font-bold tracking-tight">Check your inbox</h2>
       <p className="mb-6 text-[14.5px] leading-relaxed text-[#6a717a]">
         We&apos;ve sent a confirmation link to your email address.<br />
         Click it to activate your account, then sign in.

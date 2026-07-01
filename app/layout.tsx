@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { Poppins, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { auth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/navbar";
 import { SessionProvider } from "next-auth/react";
 
-const inter = Inter({
+const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-inter",
+  variable: "--font-poppins",
 });
 
 const geistMono = Geist_Mono({
@@ -31,8 +31,8 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html lang="en" className={`${inter.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen bg-[#f5f6f8] font-[var(--font-inter)] text-[#15181c] antialiased">
+    <html lang="en" className={`${poppins.variable} ${geistMono.variable}`}>
+      <body className="min-h-screen bg-[#f5f6f8] font-[var(--font-poppins)] text-[#15181c] antialiased">
         <SessionProvider session={session}>
           <Navbar session={session} />
           <main>{children}</main>

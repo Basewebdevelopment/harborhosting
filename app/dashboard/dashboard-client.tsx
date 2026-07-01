@@ -78,7 +78,7 @@ export function DashboardClient({ user, subscription, planConfig, recentPayments
             {initials(user.name)}
           </div>
           <div>
-            <h1 className="font-[var(--font-inter)] font-bold tracking-tight text-[22px] font-bold tracking-tight">
+            <h1 className="font-[var(--font-poppins)] font-bold tracking-tight text-[22px] font-bold tracking-tight">
               Good to see you, {firstName}
             </h1>
             <p className="text-[13.5px] text-[#7a818a]">{user.email}</p>
@@ -102,7 +102,7 @@ export function DashboardClient({ user, subscription, planConfig, recentPayments
           <div className="col-span-2 rounded-[18px] border border-[#e7e9ec] bg-white p-7">
             <div className="mb-5 flex items-start justify-between">
               <div>
-                <div className="mb-1 font-[var(--font-inter)] font-bold tracking-tight text-[18px] font-bold">
+                <div className="mb-1 font-[var(--font-poppins)] font-bold tracking-tight text-[18px] font-bold">
                   {planConfig?.name} plan
                 </div>
                 <div className="flex items-center gap-2 text-[13.5px] text-[#7a818a]">
@@ -155,7 +155,7 @@ export function DashboardClient({ user, subscription, planConfig, recentPayments
           {/* Recent payments */}
           <div className="rounded-[18px] border border-[#e7e9ec] bg-white p-7">
             <div className="mb-4 flex items-center justify-between">
-              <div className="font-[var(--font-inter)] font-bold tracking-tight text-[16px] font-semibold">Recent payments</div>
+              <div className="font-[var(--font-poppins)] font-bold tracking-tight text-[16px] font-semibold">Recent payments</div>
               <Link href="/payments" className="text-[13px] font-medium text-[#0f9d77] hover:underline">
                 View all
               </Link>

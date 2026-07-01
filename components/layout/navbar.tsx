@@ -26,9 +26,9 @@ export function Navbar({ session }: { session: Session | null }) {
           <Image
             src="/harbor-logo-v2.png"
             alt="Harbor Hosting"
-            width={220}
-            height={76}
-            className="h-14 w-auto object-contain"
+            width={260}
+            height={90}
+            className="h-16 w-auto object-contain"
             priority
           />
         </Link>
