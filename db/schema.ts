@@ -91,6 +91,7 @@ export const subscriptions = pgTable("subscriptions", {
   stripeCustomerId: text("stripe_customer_id").unique(),
   stripeSubscriptionId: text("stripe_subscription_id").unique(),
   stripePriceId: text("stripe_price_id"),
+  domain: text("domain"),
   plan: planEnum("plan").notNull(),
   billingPeriod: billingEnum("billing_period").notNull(),
   subscriptionStatus: subStatusEnum("subscription_status").notNull().default("active"),

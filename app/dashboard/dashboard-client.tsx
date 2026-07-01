@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { PLANS } from "@/lib/plans";
@@ -12,6 +13,7 @@ type Props = {
     status: string;
     currentPeriodEnd: string | null;
     cancelAtPeriodEnd: boolean;
+    domain: string | null;
   } | null;
   planConfig: (typeof PLANS)[keyof typeof PLANS] | null;
   recentPayments: {
@@ -57,6 +59,10 @@ function StatusBadge({ status }: { status: string }) {
 
 export function DashboardClient({ user, subscription, planConfig, recentPayments }: Props) {
   const firstName = user.name?.split(" ")[0] ?? "there";
+  const [savedDomain, setSavedDomain] = useState(subscription?.domain ?? "");
+  const [domainInput, setDomainInput] = useState(subscription?.domain ?? "");
+  const [editingDomain, setEditingDomain] = useState(false);
+  const [savingDomain, setSavingDomain] = useState(false);
 
   async function handleManageBilling() {
     try {
@@ -66,6 +72,27 @@ export function DashboardClient({ user, subscription, planConfig, recentPayments
       window.location.href = url;
     } catch {
       toast.error("Could not open billing portal.");
+    }
+  }
+
+  async function handleSaveDomain() {
+    setSavingDomain(true);
+    try {
+      const res = await fetch("/api/subscription", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: domainInput }),
+      });
+      const data = await res.json();
+      if (data.error) { toast.error(data.error); return; }
+      setSavedDomain(data.domain ?? "");
+      setDomainInput(data.domain ?? "");
+      setEditingDomain(false);
+      toast.success("Domain updated.");
+    } catch {
+      toast.error("Could not update domain.");
+    } finally {
+      setSavingDomain(false);
     }
   }
 
@@ -117,6 +144,49 @@ export function DashboardClient({ user, subscription, planConfig, recentPayments
               >
                 Manage plan
               </button>
+            </div>
+
+            <div className="mb-5 rounded-[12px] bg-[#f9fafb] p-4">
+              <div className="mb-1 text-[12px] font-medium text-[#9aa0a8]">Hosting for</div>
+              {editingDomain ? (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)}
+                    placeholder="example.com"
+                    className="w-full rounded-[8px] border border-[#d8dce1] bg-white px-3 py-1.5 text-[14px] outline-none focus:border-[#0f9d77] sm:max-w-[240px]"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleSaveDomain}
+                      disabled={savingDomain}
+                      className="cursor-pointer rounded-[8px] bg-[#0f9d77] px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-[#0c8463] disabled:opacity-60"
+                    >
+                      {savingDomain ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      onClick={() => { setDomainInput(savedDomain); setEditingDomain(false); }}
+                      className="cursor-pointer text-[13px] font-medium text-[#7a818a] hover:underline"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] font-semibold">
+                    {savedDomain || "No domain set"}
+                  </span>
+                  <button
+                    onClick={() => setEditingDomain(true)}
+                    className="cursor-pointer text-[13px] font-medium text-[#0f9d77] hover:underline"
+                  >
+                    {savedDomain ? "Change" : "Add domain"}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

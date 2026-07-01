@@ -189,6 +189,7 @@ export default async function DashboardPage({
               status: sub.subscriptionStatus,
               currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
               cancelAtPeriodEnd: sub.cancelAtPeriodEnd ?? false,
+              domain: sub.domain ?? null,
             }
           : null
       }

@@ -97,7 +97,26 @@ export default async function PaymentsPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[18px] border border-[#e7e9ec] bg-white">
+          {/* Mobile: stacked cards */}
+          <div className="flex flex-col gap-3 sm:hidden">
+            {allPayments.map((p) => (
+              <div key={p.id} className="rounded-[14px] border border-[#e7e9ec] bg-white p-4">
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <div className="text-[13.5px] font-medium">{p.description}</div>
+                  <div className="whitespace-nowrap font-[var(--font-geist-mono)] text-[14px] font-semibold">
+                    {fmtAmount(p.amount, p.currency)}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-[12.5px] text-[#7a818a]">
+                  <span>{fmtDate(p.createdAt)} · {p.brand && p.last4 ? `${p.brand} ···· ${p.last4}` : "—"}</span>
+                  <StatusBadge status={p.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop/tablet: table */}
+          <div className="hidden overflow-hidden rounded-[18px] border border-[#e7e9ec] bg-white sm:block">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#f0f1f3] bg-[#f9fafb]">
