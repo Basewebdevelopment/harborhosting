@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { db, payments } from "@/db";
+import { db, payments, subscriptions } from "@/db";
 import { eq, desc } from "drizzle-orm";
 import Link from "next/link";
+import { syncBillingFromStripe } from "@/lib/sync-billing";
 
 function fmtDate(date: Date) {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -33,18 +34,31 @@ export default async function PaymentsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
+  // Sync from Stripe if payments are missing (e.g. webhook fired before fix)
+  try {
+    await syncBillingFromStripe(session.user.id);
+  } catch (err) {
+    console.error("[payments] sync error", err);
+  }
+
   const allPayments = await db
     .select()
     .from(payments)
     .where(eq(payments.userId, session.user.id))
     .orderBy(desc(payments.createdAt));
 
+  const [sub] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, session.user.id))
+    .limit(1);
+
   const total = allPayments.reduce((sum, p) => sum + p.amount, 0);
-  const currency = allPayments[0]?.currency ?? "usd";
+  const currency = allPayments[0]?.currency ?? "gbp";
 
   return (
     <div className="mx-auto max-w-6xl px-6 pb-16 pt-10">
-      <div className="mb-2 font-[var(--font-inter)] font-bold tracking-tight text-[26px] font-bold tracking-tight">
+      <div className="mb-2 text-[26px] font-bold tracking-tight">
         Payment history
       </div>
       <p className="mb-8 text-[14.5px] text-[#7a818a]">
@@ -53,17 +67,21 @@ export default async function PaymentsPage() {
 
       {allPayments.length === 0 ? (
         <div className="rounded-[18px] border border-[#e7e9ec] bg-white p-10 text-center">
-          <p className="mb-4 text-[15px] text-[#6a717a]">No payments yet.</p>
+          <p className="text-[15px] font-medium text-[#15181c]">No payments recorded yet</p>
+          <p className="mt-2 text-[14px] text-[#7a818a]">
+            {sub
+              ? "Your payment history will appear here after Stripe processes your subscription charges."
+              : "Once you subscribe to a plan, your invoices and receipts will show up here."}
+          </p>
           <Link
-            href="/pricing"
-            className="inline-block rounded-[10px] bg-[#0f9d77] px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-[#0c8463]"
+            href="/dashboard"
+            className="mt-5 inline-block text-[14px] font-medium text-[#0f9d77] hover:underline"
           >
-            Choose a plan
+            ← Back to dashboard
           </Link>
         </div>
       ) : (
         <>
-          {/* Summary */}
           <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div className="rounded-[14px] border border-[#e7e9ec] bg-white p-5">
               <div className="mb-1 text-[12px] font-medium text-[#9aa0a8]">Total spent</div>
@@ -79,7 +97,6 @@ export default async function PaymentsPage() {
             </div>
           </div>
 
-          {/* Table */}
           <div className="overflow-hidden rounded-[18px] border border-[#e7e9ec] bg-white">
             <table className="w-full">
               <thead>
