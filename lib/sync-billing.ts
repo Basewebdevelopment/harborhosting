@@ -1,6 +1,6 @@
 import "server-only";
 import { stripe } from "@/lib/stripe";
-import { getSubscriptionPeriod, getInvoiceCardDetails } from "@/lib/stripe-helpers";
+import { getSubscriptionPeriod, getInvoiceCardDetails, resolveStripeCustomerId } from "@/lib/stripe-helpers";
 import { db, subscriptions, payments, users } from "@/db";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -42,21 +42,31 @@ export async function syncBillingFromStripe(userId: string) {
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user?.email) return;
 
-  const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-  const customer = customers.data[0];
-  if (!customer) return;
-
   const [existingSub] = await db
     .select()
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
 
+  const customerId = await resolveStripeCustomerId({
+    userId,
+    email: user.email,
+    name: user.name,
+    existingCustomerId: existingSub?.stripeCustomerId,
+  });
+
   let planLabel = existingSub?.plan ? `${existingSub.plan} plan` : undefined;
+
+  if (existingSub && existingSub.stripeCustomerId !== customerId) {
+    await db
+      .update(subscriptions)
+      .set({ stripeCustomerId: customerId, updatedAt: new Date() })
+      .where(eq(subscriptions.userId, userId));
+  }
 
   if (!existingSub) {
     const stripeSubs = await stripe.subscriptions.list({
-      customer: customer.id,
+      customer: customerId,
       status: "active",
       limit: 1,
       expand: ["data.items"],
@@ -79,7 +89,7 @@ export async function syncBillingFromStripe(userId: string) {
       await db.insert(subscriptions).values({
         id: nanoid(),
         userId,
-        stripeCustomerId: customer.id,
+        stripeCustomerId: customerId,
         stripeSubscriptionId: activeSub.id,
         stripePriceId: item?.price.id ?? null,
         plan,
@@ -91,5 +101,5 @@ export async function syncBillingFromStripe(userId: string) {
     }
   }
 
-  await syncInvoicesForCustomer(userId, customer.id, planLabel);
+  await syncInvoicesForCustomer(userId, customerId, planLabel);
 }

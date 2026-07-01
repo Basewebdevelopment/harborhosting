@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { stripe, STRIPE_PRICE_IDS } from "@/lib/stripe";
+import { resolveStripeCustomerId } from "@/lib/stripe-helpers";
 import { PLANS, type PlanKey } from "@/lib/plans";
 import { db, subscriptions, users } from "@/db";
 import { eq } from "drizzle-orm";
@@ -52,15 +53,18 @@ export async function POST(req: NextRequest) {
       .where(eq(subscriptions.userId, session.user.id))
       .limit(1);
 
-    let customerId = sub?.stripeCustomerId;
+    let customerId = await resolveStripeCustomerId({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      existingCustomerId: sub?.stripeCustomerId,
+    });
 
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email ?? undefined,
-        name: user.name ?? undefined,
-        metadata: { userId: user.id },
-      });
-      customerId = customer.id;
+    if (sub && sub.stripeCustomerId !== customerId) {
+      await db
+        .update(subscriptions)
+        .set({ stripeCustomerId: customerId, updatedAt: new Date() })
+        .where(eq(subscriptions.userId, session.user.id));
     }
 
     const checkoutSession = await stripe.checkout.sessions.create({

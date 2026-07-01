@@ -11,6 +11,39 @@ export function getSubscriptionPeriod(sub: Stripe.Subscription) {
   };
 }
 
+/**
+ * Resolve a valid Stripe customer for the current API mode (live/test).
+ * Handles stale test customer IDs stored in DB after switching to live keys.
+ */
+export async function resolveStripeCustomerId(opts: {
+  userId: string;
+  email: string;
+  name?: string | null;
+  existingCustomerId?: string | null;
+}): Promise<string> {
+  if (opts.existingCustomerId) {
+    try {
+      await stripe.customers.retrieve(opts.existingCustomerId);
+      return opts.existingCustomerId;
+    } catch {
+      // e.g. test customer id used with live keys — look up or create below
+    }
+  }
+
+  const existing = await stripe.customers.list({
+    email: opts.email.toLowerCase(),
+    limit: 1,
+  });
+  if (existing.data[0]) return existing.data[0].id;
+
+  const customer = await stripe.customers.create({
+    email: opts.email.toLowerCase(),
+    name: opts.name ?? undefined,
+    metadata: { userId: opts.userId },
+  });
+  return customer.id;
+}
+
 /** Resolve the card/charge details and payment intent id for a paid invoice via its payments list. */
 export async function getInvoiceCardDetails(invoice: Stripe.Invoice) {
   const invoicePayment = invoice.payments?.data[0];
